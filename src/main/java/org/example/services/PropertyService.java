@@ -11,14 +11,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class PropertyService {
-    private final Map<String, Property> properties;
     private final Map<String, List<String>> shortlisted = new HashMap<>();  // user -> property IDs
     private final UserService userService;
-//    Database db= Database.getInstance();
     Database db;
     public PropertyService(Database db, UserService userService) {
         this.db = db;
-        this.properties = db.getProperties();
         this.userService = userService;
     }
 
@@ -32,7 +29,6 @@ public class PropertyService {
         }
         Property property = PropertyFactory.create(
                 user.getName(), location, price, size, rooms, listingTypeStr);
-        properties.put(property.getId(), property);
         db.getProperties().put(property.getId(), property);
         System.out.println("Property listed successfully.");
     }
@@ -59,7 +55,7 @@ public class PropertyService {
             return;
         }
 
-        List<Property> listed = properties.values().stream()
+        List<Property> listed = db.getProperties().values().stream()
                 .filter(p -> p.getOwner().equalsIgnoreCase(user.getName()))
                 .collect(Collectors.toList());
 
@@ -131,11 +127,11 @@ public class PropertyService {
     }
 
     public Property getPropertyById(String propertyId) {
-        return properties.get(propertyId);
+        return db.getProperties().get(propertyId);
     }
 
     public void addProperty(Property property) {
-        properties.put(property.getId(), property);
+        db.getProperties().put(property.getId(), property);
     }
 
     public void markSold(String propertyId) {
@@ -147,7 +143,7 @@ public class PropertyService {
 
         String ownerName = activeUser.getName(); // or getId() if you have an ID field
 
-        return properties.values()
+        return db.getProperties().values()
                 .stream()
                 .filter(p -> p.getOwner().equals(ownerName))
                 .toList();
