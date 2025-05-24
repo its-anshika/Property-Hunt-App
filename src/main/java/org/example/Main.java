@@ -12,7 +12,7 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) {
 
-        System.out.println("Hello, World!");
+        System.out.println("Welcome to Property Hunt App!");
         Database db = Database.getInstance();
         UserService userService = new UserService(db);
         PropertyService propertyService = new PropertyService(db, userService);
@@ -96,8 +96,6 @@ public class Main {
                     User active = userService.getActiveUser();
                     if (active != null) {
                         shortlistService.viewShortlistedProperties(active);
-//                        shortlistService.getShortlistedProperties(active)
-//                                .forEach(System.out::println);
                     } else {
                         System.out.println("Login first.");
                     }
