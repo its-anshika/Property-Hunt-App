@@ -6,7 +6,6 @@ import org.example.services.PropertyService;
 import org.example.services.ShortlistService;
 import org.example.services.UserService;
 
-import java.awt.geom.Arc2D;
 import java.util.Scanner;
 
 public class Main {
