@@ -1,17 +1,15 @@
 package org.example.services;
 
 import org.example.Database;
-import org.example.entities.ListType;
 import org.example.entities.Property;
 import org.example.entities.User;
+import org.example.filterDecorators.*;
 
-import javax.xml.crypto.Data;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class PropertyService {
-    private final Map<String, List<String>> shortlisted = new HashMap<>();  // user -> property IDs
     private final UserService userService;
     Database db;
     public PropertyService(Database db, UserService userService) {
@@ -70,68 +68,84 @@ public class PropertyService {
             String rooms,            // "1", "2", "3", or null
             String sortBy            // "price", "size", or null (no sort)
     ) {
-        List<Property> all = new ArrayList<>(db.getProperties().values());
-
-        Stream<Property> stream = all.stream();
+        List<Property> result = new ArrayList<>(db.getProperties().values());
+        List<PropertyFilter> filters = new ArrayList<>();
 
         if (location != null && !location.isBlank()) {
-            String locLower = location.toLowerCase();
-            stream = stream.filter(p -> p.getLocation().toLowerCase().equals(locLower));
+            filters.add(new LocationFilter(location));
         }
-
         if (priceRange != null && !priceRange.isBlank()) {
-            double[] priceBounds = parseRange(priceRange);
-            stream = stream.filter(p -> p.getPrice() >= priceBounds[0] && p.getPrice() <= priceBounds[1]);
+            filters.add(new PriceRangeFilter(priceRange));
         }
-
-        if (listingType != null && !listingType.isBlank()) {
-            ListType type = ListType.valueOf(listingType.toUpperCase());
-            stream = stream.filter(p -> p.getListType() == type);
+        if(sizeRange != null && !sizeRange.isBlank()) {
+            filters.add(new SizeRangeFilter(sizeRange));
         }
-
-        if (sizeRange != null && !sizeRange.isBlank()) {
-            int[] sizeBounds = parseIntRange(sizeRange);
-            stream = stream.filter(p -> p.getSize() >= sizeBounds[0] && p.getSize() <= sizeBounds[1]);
+        if(rooms != null && !rooms.isBlank()) {
+            filters.add(new RoomsFilter(rooms));
         }
-
-        if (rooms != null && !rooms.isBlank()) {
-            int roomsCount = Integer.parseInt(rooms);
-            stream = stream.filter(p -> p.getRooms() == roomsCount);
+        if(listingType != null && !listingType.isBlank()) {
+            filters.add(new ListTypeFilter(listingType));
         }
-
-        List<Property> filtered = stream.collect(Collectors.toList());
+        // Apply all filters
+        for (PropertyFilter filter : filters) {
+            result = filter.apply(result);
+        }
+//        Stream<Property> stream = result.stream();
+//
+//        if (location != null && !location.isBlank()) {
+//            String locLower = location.toLowerCase();
+//            stream = stream.filter(p -> p.getLocation().toLowerCase().equals(locLower));
+//        }
+//
+//        if (priceRange != null && !priceRange.isBlank()) {
+//            double[] priceBounds = parseRange(priceRange);
+//            stream = stream.filter(p -> p.getPrice() >= priceBounds[0] && p.getPrice() <= priceBounds[1]);
+//        }
+//
+//        if (listingType != null && !listingType.isBlank()) {
+//            ListType type = ListType.valueOf(listingType.toUpperCase());
+//            stream = stream.filter(p -> p.getListType() == type);
+//        }
+//
+//        if (sizeRange != null && !sizeRange.isBlank()) {
+//            int[] sizeBounds = parseIntRange(sizeRange);
+//            stream = stream.filter(p -> p.getSize() >= sizeBounds[0] && p.getSize() <= sizeBounds[1]);
+//        }
+//
+//        if (rooms != null && !rooms.isBlank()) {
+//            int roomsCount = Integer.parseInt(rooms);
+//            stream = stream.filter(p -> p.getRooms() == roomsCount);
+//        }
+//
+//        List<Property> result = stream.collect(Collectors.toList());
 
         // Sort
         if ("price".equalsIgnoreCase(sortBy)) {
-            filtered.sort(Comparator.comparingInt(Property::getPrice));
+            result.sort(Comparator.comparingInt(Property::getPrice));
         } else if ("size".equalsIgnoreCase(sortBy)) {
-            filtered.sort(Comparator.comparingDouble(Property::getSize));
+            result.sort(Comparator.comparingDouble(Property::getSize));
         }
 
-        return filtered;
+        return result;
     }
 
     // Utility to parse "X-Y" or "X" (means >= X)
-    private double[] parseRange(String range) {
-        String[] parts = range.split("-");
-        double low = Double.parseDouble(parts[0]);
-        double high = (parts.length > 1) ? Double.parseDouble(parts[1]) : Double.MAX_VALUE;
-        return new double[]{low, high};
-    }
-
-    private int[] parseIntRange(String range) {
-        String[] parts = range.split("-");
-        int low = Integer.parseInt(parts[0]);
-        int high = (parts.length > 1) ? Integer.parseInt(parts[1]) : Integer.MAX_VALUE;
-        return new int[]{low, high};
-    }
+//    private double[] parseRange(String range) {
+//        String[] parts = range.split("-");
+//        double low = Double.parseDouble(parts[0]);
+//        double high = (parts.length > 1) ? Double.parseDouble(parts[1]) : Double.MAX_VALUE;
+//        return new double[]{low, high};
+//    }
+//
+//    private int[] parseIntRange(String range) {
+//        String[] parts = range.split("-");
+//        int low = Integer.parseInt(parts[0]);
+//        int high = (parts.length > 1) ? Integer.parseInt(parts[1]) : Integer.MAX_VALUE;
+//        return new int[]{low, high};
+//    }
 
     public Property getPropertyById(String propertyId) {
         return db.getProperties().get(propertyId);
-    }
-
-    public void addProperty(Property property) {
-        db.getProperties().put(property.getId(), property);
     }
 
     public void markSold(String propertyId) {
